@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🇮🇹 Vocabolario Italiano</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="vocab_database.js"></script>
+
+    <style>
+      :root {
+        --bg: #14100c;
+        --bg-surface: #1e1712;
+        --bg-card: #271e17;
+        --bg-card-alt: #32251d;
+        --terracotta: #c65d3b;
+        --terracotta-dark: #8c381f;
+        --gold: #d4a843;
+        --gold-bright: #f3cf65;
+        --gold-dim: #9a7629;
+        --trapani: #2a5a7a;
+        --trapani-bright: #3d88b8;
+        --text-main: #f5eedb;
+        --text-muted: #c2b59b;
+        --text-dim: #827560;
+        --siena-red: #9e2a2b;
+        --radius-sm: 6px;
+        --radius: 12px;
+        --radius-lg: 18px;
+        --font-display: "Cinzel", Georgia, serif;
+        --font-body: "Lora", Georgia, serif;
+        --font-accent: "Playfair Display", Georgia, serif;
+        --font-mono: "Courier New", monospace;
+        --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        min-height: 100%;
+        font-family: var(--font-body);
+        background: var(--bg);
+        color: var(--text-main);
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 14px 10px;
+        background: radial-gradient(
+          circle at 50% 0%,
+          #291d15 0%,
+          var(--bg) 75%
+        );
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 580px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: relative;
+        z-index: 1;
+      }
+      .screen {
+        display: none;
+        flex-direction: column;
+        gap: 14px;
+        animation: slideIn 0.3s ease-out;
+      }
+      .screen.active {
+        display: flex;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0;
+        color: var(--gold-dim);
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--gold-dim),
+          transparent
+        );
+      }
+      .divider-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--gold-dim);
+        flex-shrink: 0;
+      }
+
+      .header-box {
+        text-align: center;
+        padding: 18px 12px 6px;
+      }
+      .header-flag {
+        font-size: 44px;
+        display: block;
+        margin-bottom: 4px;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+      }
+      .header-title {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--gold-bright);
+        letter-spacing: 0.05em;
+      }
+      .header-sub {
+        font-size: 13px;
+        font-style: italic;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .section-label {
+        font-family: var(--font-accent);
+        font-size: 14px;
+        color: var(--gold);
+        font-style: italic;
+        text-align: center;
+      }
+
+      .input-field {
+        width: 100%;
+        background: var(--bg-surface);
+        border: 1px solid #3d2d22;
+        border-radius: var(--radius-sm);
+        color: var(--text-main);
+        padding: 10px 12px;
+        font-family: var(--font-body);
+        font-size: 14px;
+        outline: none;
+        transition: 0.2s;
+      }
+      .input-field:focus {
+        border-color: var(--gold);
+      }
+
+      .tabs-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+      .tab-btn {
+        background: var(--bg-surface);
+        border: 1px solid #3d2d22;
+        padding: 10px 4px;
+        color: var(--text-muted);
+        border-radius: var(--radius-sm);
+        font-family: var(--font-display);
+        font-size: 11px;
+        cursor: pointer;
+        transition: 0.2s;
+        text-align: center;
+      }
+      .tab-btn.active {
+        background: var(--terracotta);
+        color: #fff;
+        border-color: var(--gold);
+        font-weight: bold;
+      }
+
+      .chip-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+      }
+      .chip {
+        padding: 6px 12px;
+        background: var(--bg-surface);
+        border: 1px solid #38291f;
+        border-radius: 20px;
+        font-size: 12px;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .chip:hover {
+        border-color: var(--gold-dim);
+        color: var(--text-main);
+      }
+      .chip.selected {
+        background: #3c2a1d;
+        border-color: var(--terracotta);
+        color: var(--gold-bright);
+        font-weight: bold;
+      }
+
+      .grid-select {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        max-height: 180px;
+        overflow-y: auto;
+        padding: 4px;
+      }
+      .grid-card {
+        background: var(--bg-surface);
+        border: 1px solid #3a2b20;
+        border-radius: var(--radius-sm);
+        padding: 10px 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .grid-card:hover {
+        border-color: var(--terracotta);
+      }
+      .grid-card.selected {
+        border-color: var(--gold);
+        background: #37281d;
+        box-shadow: 0 0 8px rgba(212, 168, 67, 0.2);
+      }
+      .grid-card .icon {
+        font-size: 18px;
+        display: block;
+        margin-bottom: 2px;
+      }
+      .grid-card .name {
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .player-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-surface);
+        border: 1px solid #3a2a1e;
+        padding: 6px 10px;
+        border-radius: var(--radius-sm);
+        margin-bottom: 6px;
+      }
+      .player-num {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--terracotta);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .player-input {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid #3a2a1e;
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .btn-remove {
+        background: transparent;
+        border: none;
+        color: var(--siena-red);
+        font-size: 18px;
+        cursor: pointer;
+      }
+
+      .top-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .scores-grid {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+      .score-card {
+        flex: 1;
+        min-width: 110px;
+        background: var(--bg-surface);
+        border: 1px solid #3c2a1e;
+        border-radius: var(--radius-sm);
+        padding: 8px 10px;
+        border-left: 3px solid var(--terracotta);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .score-card.computer {
+        border-left-color: var(--trapani-bright);
+      }
+      .score-card .s-name {
+        font-size: 12px;
+        font-family: var(--font-display);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .score-card .s-pts {
+        font-family: var(--font-mono);
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--gold-bright);
+      }
+      .score-card .s-strikes {
+        font-size: 10px;
+        color: var(--siena-red);
+        font-weight: bold;
+      }
+
+      .timer-strip {
+        height: 4px;
+        background: #221811;
+        border-radius: 2px;
+        overflow: hidden;
+        position: relative;
+      }
+      .timer-progress {
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, var(--gold), var(--terracotta));
+        transition: width 0.1s linear;
+      }
+      .timer-progress.urgent {
+        background: var(--siena-red);
+      }
+
+      .turn-hud {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-surface);
+        border: 1px solid #3c2a1e;
+        padding: 6px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+      }
+      .turn-hud .active-name {
+        color: var(--gold-bright);
+        font-weight: bold;
+        font-family: var(--font-display);
+      }
+
+      .flashcard {
+        background: linear-gradient(
+          170deg,
+          var(--bg-card) 0%,
+          var(--bg-card-alt) 100%
+        );
+        border: 2px solid var(--gold-dim);
+        border-radius: var(--radius-lg);
+        padding: 22px 18px;
+        box-shadow: var(--shadow);
+        position: relative;
+        text-align: center;
+      }
+      .card-top-badges {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .badge-pos {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: rgba(212, 168, 67, 0.15);
+        color: var(--gold);
+        border: 1px solid var(--gold-dim);
+      }
+      .badge-cefr {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: bold;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: rgba(198, 93, 59, 0.15);
+        color: var(--terracotta);
+        border: 1px solid var(--terracotta);
+      }
+
+      .word-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 4px 0 12px;
+      }
+      .italian-lemma {
+        font-family: var(--font-accent);
+        font-size: 34px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: 0.02em;
+      }
+      .tts-btn {
+        background: #3c291d;
+        border: 1px solid var(--gold-dim);
+        border-radius: 50%;
+        width: 34px;
+        height: 34px;
+        color: var(--gold-bright);
+        font-size: 16px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+      }
+      .tts-btn:hover {
+        background: var(--terracotta);
+        color: #fff;
+        transform: scale(1.05);
+      }
+
+      .card-question {
+        font-size: 13px;
+        font-style: italic;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+      }
+
+      .options-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .opt-btn {
+        width: 100%;
+        min-height: 48px;
+        background: var(--bg-surface);
+        border: 1px solid #3e2d21;
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        color: var(--text-main);
+        font-size: 14px;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .opt-btn:hover:not(:disabled) {
+        background: #35261c;
+        border-color: var(--gold);
+        transform: translateX(2px);
+      }
+      .opt-btn .opt-badge {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #2f2117;
+        border: 1px solid #483425;
+        color: var(--gold);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-family: var(--font-display);
+        flex-shrink: 0;
+      }
+      .opt-btn.correct {
+        background: rgba(42, 90, 122, 0.55) !important;
+        border-color: var(--trapani-bright) !important;
+        color: #ffffff !important;
+      }
+      .opt-btn.correct .opt-badge {
+        background: var(--trapani-bright) !important;
+        color: #ffffff !important;
+        border-color: var(--trapani-bright) !important;
+      }
+      .opt-btn.wrong {
+        background: rgba(158, 42, 43, 0.45) !important;
+        border-color: var(--siena-red) !important;
+        color: #ffb4b4 !important;
+      }
+      .opt-btn.wrong .opt-badge {
+        background: var(--siena-red) !important;
+        color: #ffffff !important;
+        border-color: var(--siena-red) !important;
+      }
+      .opt-btn-blue {
+        margin-left: auto;
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--trapani-bright);
+      }
+      .opt-btn-cross {
+        margin-left: auto;
+        font-size: 16px;
+        font-weight: bold;
+        color: #ff6b6b;
+      }
+
+      .context-feedback {
+        background: var(--bg-surface);
+        border: 1px solid #3e2e22;
+        border-radius: var(--radius);
+        padding: 14px;
+        margin-top: 10px;
+        text-align: left;
+        animation: slideIn 0.25s ease-out;
+      }
+      .context-feedback.ok {
+        border-left: 4px solid var(--trapani-bright);
+      }
+      .context-feedback.bad {
+        border-left: 4px solid var(--siena-red);
+      }
+      .feedback-verdict {
+        font-family: var(--font-display);
+        font-weight: bold;
+        font-size: 13px;
+      }
+      .feedback-verdict.ok {
+        color: var(--trapani-bright);
+      }
+      .feedback-verdict.bad {
+        color: var(--siena-red);
+      }
+
+      .btn-main {
+        background: var(--terracotta);
+        color: #fff;
+        border: none;
+        padding: 14px;
+        border-radius: var(--radius);
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        letter-spacing: 0.05em;
+        text-align: center;
+        width: 100%;
+      }
+      .btn-main:hover:not(:disabled) {
+        background: var(--terracotta-dark);
+      }
+      .btn-main:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background: var(--bg-surface);
+        color: var(--gold-bright);
+        border: 1px solid var(--gold-dim);
+        padding: 14px;
+        border-radius: var(--radius);
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        text-align: center;
+        width: 100%;
+      }
+      .btn-secondary:hover {
+        background: #35261c;
+        border-color: var(--gold);
+      }
+
+      .btn-sub {
+        background: transparent;
+        color: var(--text-dim);
+        border: 1px solid #3a2b1f;
+        padding: 8px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-sub:hover {
+        color: var(--text-main);
+        border-color: var(--gold-dim);
+      }
+
+      .room-card {
+        background: var(--bg-surface);
+        border: 2px dashed var(--gold);
+        border-radius: var(--radius);
+        padding: 16px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .room-code-display {
+        font-family: var(--font-mono);
+        font-size: 32px;
+        font-weight: bold;
+        letter-spacing: 0.15em;
+        color: var(--gold-bright);
+      }
+      .player-lobby-pill {
+        background: var(--bg-card);
+        border: 1px solid #4a3424;
+        border-radius: 20px;
+        padding: 8px 14px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .lista-box {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .lista-card {
+        background: var(--bg-surface);
+        border: 1px solid #3c2a1e;
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .lista-card.hit {
+        border-left: 4px solid var(--trapani-bright);
+      }
+      .lista-card.miss {
+        border-left: 4px solid var(--siena-red);
+      }
+      .lista-card .lc-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .lista-card .lc-it {
+        font-family: var(--font-accent);
+        font-size: 18px;
+        font-weight: bold;
+        color: #fff;
+      }
+      .lista-card .lc-en {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-style: italic;
+      }
+      .lista-card .lc-tag {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--gold);
+        text-transform: uppercase;
+      }
+      .lista-card .lc-ex {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- SCREEN 1: MAIN MENU -->
+      <div id="screen-home" class="screen active">
+        <div class="header-box">
+          <span class="header-flag">🇮🇹</span>
+          <h1 class="header-title">Vocabolario Italiano</h1>
+          <p class="header-sub">
+            Single Player &bull; Pass-and-Play &bull; Stanze Online
+          </p>
+        </div>
+
+        <div class="divider"><span class="divider-dot"></span></div>
+
+        <div class="section-label">Nome Utente</div>
+        <input
+          type="text"
+          id="input-username"
+          class="input-field"
+          placeholder="Inserisci il tuo nome..."
+          maxlength="16"
+          value="Ziad"
+        />
+
+        <div class="divider"><span class="divider-dot"></span></div>
+
+        <div class="section-label">Come Vuoi Giocare?</div>
+        <div class="tabs-3">
+          <button
+            class="tab-btn active"
+            id="mode-ai"
+            onclick="selectPlayMode('ai')"
+          >
+            🤖 vs Computer
+          </button>
+          <button
+            class="tab-btn"
+            id="mode-local"
+            onclick="selectPlayMode('local')"
+          >
+            👥 Stesso Schermo
+          </button>
+          <button
+            class="tab-btn"
+            id="mode-online"
+            onclick="selectPlayMode('online')"
+          >
+            🌐 Stanza Online
+          </button>
+        </div>
+
+        <!-- Local player names input -->
+        <div id="local-pass-area" style="display: none">
+          <div id="players-list"></div>
+          <button
+            class="btn-sub"
+            style="width: 100%; margin-top: 4px"
+            onclick="addPlayerField()"
+          >
+            + Aggiungi Giocatore
+          </button>
+        </div>
+
+        <!-- Online room options -->
+        <div
+          id="online-room-area"
+          style="display: none; flex-direction: column; gap: 10px"
+        >
+          <button type="button" class="btn-main" onclick="hostCreateRoom()">
+            🏠 Crea Stanza (Codice Automatico)
+          </button>
+
+          <div style="display: flex; gap: 8px">
+            <input
+              type="text"
+              id="input-room-code"
+              class="input-field"
+              placeholder="Codice Stanza (es. Q6CU2)..."
+              style="
+                font-family: var(--font-mono);
+                font-weight: bold;
+                letter-spacing: 0.05em;
+              "
+            />
+            <button
+              type="button"
+              class="btn-secondary"
+              style="width: auto; padding: 10px 18px"
+              onclick="joinExistingRoom()"
+            >
+              Entra
+            </button>
+          </div>
+        </div>
+
+        <div class="divider"><span class="divider-dot"></span></div>
+
+        <!-- GAMEPLAY STYLE: TURN-BASED VS SPEED BUZZER -->
+        <div class="section-label">Modalità di Gara</div>
+        <div class="tabs-3" style="grid-template-columns: 1fr 1fr">
+          <button
+            class="tab-btn active"
+            id="rule-turn"
+            onclick="setGameRule('turn')"
+          >
+            🔄 A Turni (Classico)
+          </button>
+          <button
+            class="tab-btn"
+            id="rule-speed"
+            onclick="setGameRule('speed')"
+          >
+            ⚡ Gara di Velocità (Buzzer)
+          </button>
+        </div>
+
+        <div class="divider"><span class="divider-dot"></span></div>
+
+        <div class="section-label">Lunghezza & Regole</div>
+        <div class="chip-group" id="chips-length">
+          <div class="chip" data-len="10" onclick="setLength(10)">
+            10 Parole
+          </div>
+          <div class="chip selected" data-len="20" onclick="setLength(20)">
+            20 Parole
+          </div>
+          <div class="chip" data-len="50" onclick="setLength(50)">
+            50 Parole
+          </div>
+          <div
+            class="chip"
+            id="chip-sudden-death"
+            data-len="9999"
+            onclick="setLength(9999)"
+          >
+            ⚡ Morte Improvvisa (3 errori)
+          </div>
+        </div>
+
+        <div class="section-label" style="margin-top: 6px">
+          Seleziona Argomento o Livello
+        </div>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 6px;
+          "
+        >
+          <button
+            class="tab-btn active"
+            id="tab-tax-cat"
+            onclick="setTaxonomy('category')"
+          >
+            Tematiche
+          </button>
+          <button
+            class="tab-btn"
+            id="tab-tax-cefr"
+            onclick="setTaxonomy('cefr')"
+          >
+            Livelli CEFR
+          </button>
+        </div>
+        <div class="grid-select" id="selection-grid"></div>
+
+        <div id="start-local-btn-box" style="margin-top: 8px">
+          <button class="btn-main" onclick="startLocalGame()">
+            🎮 Avvia Partita Adesso
+          </button>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: MULTIPLAYER LOBBY -->
+      <div id="screen-lobby" class="screen">
+        <div class="header-box">
+          <h2
+            style="font-family: var(--font-display); color: var(--gold-bright)"
+          >
+            Stanza Online
+          </h2>
+          <p class="header-sub">
+            Invia questo codice ai tuoi amici per farli entrare
+          </p>
+        </div>
+
+        <div class="room-card">
+          <div
+            style="
+              font-size: 11px;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              color: var(--gold-dim);
+            "
+          >
+            Codice Stanza
+          </div>
+          <div class="room-code-display" id="lobby-code-display">-----</div>
+          <button class="btn-sub" onclick="copyRoomCode()">
+            📋 Copia Codice
+          </button>
+        </div>
+
+        <div class="section-label">
+          Giocatori Connessi (<span id="lobby-count">1</span>)
+        </div>
+        <div
+          id="lobby-players-list"
+          style="display: flex; flex-direction: column; gap: 6px"
+        ></div>
+
+        <div id="lobby-host-controls" style="display: none; margin-top: 10px">
+          <button
+            class="btn-main"
+            id="btn-start-multiplayer"
+            onclick="startMultiplayerGame()"
+            disabled
+          >
+            🎮 Avvia Partita (Minimo 2 Giocatori)
+          </button>
+        </div>
+        <div
+          id="lobby-guest-notice"
+          style="
+            display: none;
+            text-align: center;
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 13px;
+          "
+        >
+          In attesa che l'Host avvii la partita...
+        </div>
+
+        <button
+          class="btn-sub"
+          style="margin-top: 8px"
+          onclick="leaveRoomAndReturn()"
+        >
+          ← Esci al Menu
+        </button>
+      </div>
+
+      <!-- SCREEN 3: GAMEPLAY -->
+      <div id="screen-game" class="screen">
+        <div class="top-stats">
+          <div class="scores-grid" id="scores-strip"></div>
+          <div class="timer-strip">
+            <div class="timer-progress" id="timer-bar"></div>
+          </div>
+          <div class="turn-hud">
+            <span
+              >Giro <b id="lbl-question-num">1</b
+              ><span id="lbl-question-total">/20</span></span
+            >
+            <span
+              id="lbl-strikes"
+              style="color: var(--siena-red); display: none"
+              >Errori: 0/3</span
+            >
+            <span id="lbl-turn-info"
+              >Stile:
+              <b class="active-name" id="lbl-game-rule-mode">Turno</b></span
+            >
+          </div>
+        </div>
+
+        <div class="flashcard">
+          <div class="card-top-badges">
+            <span class="badge-pos" id="badge-pos">VERBO</span>
+            <span class="badge-cefr" id="badge-cefr">A1</span>
+          </div>
+          <div class="word-row">
+            <div class="italian-lemma" id="card-lemma">Mangiare</div>
+            <button
+              class="tts-btn"
+              type="button"
+              onclick="speakCurrentWord()"
+              title="Ascolta pronuncia"
+            >
+              🔊
+            </button>
+          </div>
+          <div class="card-question">
+            Seleziona il significato corretto in inglese:
+          </div>
+          <div class="options-stack" id="options-box"></div>
+        </div>
+
+        <div id="context-feedback-box" style="display: none"></div>
+
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+          "
+        >
+          <button class="btn-sub" onclick="confirmQuit()">
+            ✕ Termina Partita
+          </button>
+          <span
+            id="lbl-timer-text"
+            style="
+              font-family: var(--font-mono);
+              font-size: 11px;
+              color: var(--text-dim);
+            "
+            >25s</span
+          >
+        </div>
+      </div>
+
+      <!-- SCREEN 4: ROUND OVER -->
+      <div id="screen-over" class="screen">
+        <div style="font-size: 48px; text-align: center">🏆</div>
+        <h2
+          style="
+            text-align: center;
+            font-family: var(--font-display);
+            color: var(--gold-bright);
+          "
+        >
+          Partita Conclusa
+        </h2>
+        <div
+          id="winner-banner"
+          style="
+            text-align: center;
+            font-style: italic;
+            color: var(--text-muted);
+            margin-top: 4px;
+          "
+        ></div>
+
+        <div class="divider"><span class="divider-dot"></span></div>
+
+        <div class="section-label">Punteggi Finali</div>
+        <div
+          id="final-scoreboard"
+          style="display: flex; flex-direction: column; gap: 6px"
+        ></div>
+
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+          "
+        >
+          <button class="btn-main" id="btn-replay" onclick="replayGame()">
+            🔄 Gioca di Nuovo (Nuove Parole)
+          </button>
+          <button class="btn-secondary" onclick="showGameListScreen()">
+            📋 Lista della Partita
+          </button>
+          <button
+            class="btn-sub"
+            style="padding: 12px; font-size: 13px"
+            onclick="goToHome()"
+          >
+            🏠 Torna al Menu
+          </button>
+        </div>
+      </div>
+
+      <!-- SCREEN 5: LISTA DELLA PARTITA -->
+      <div id="screen-lista" class="screen">
+        <div class="header-box">
+          <h2
+            style="
+              font-family: var(--font-display);
+              color: var(--gold-bright);
+              font-size: 20px;
+            "
+          >
+            📋 Lista della Partita
+          </h2>
+          <p class="header-sub">
+            Tutti i verbi e vocaboli incontrati nel round
+          </p>
+        </div>
+
+        <div class="lista-box" id="lista-cards-container"></div>
+
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+          "
+        >
+          <button class="btn-main" onclick="goToHome()">
+            🏠 Torna al Menu
+          </button>
+          <button class="btn-sub" onclick="downloadPlayedText()">
+            ⬇ Scarica come played.txt
+          </button>
+        </div>
+      </div>
+
+      <!-- IN-GAME QUIT MODAL -->
+      <div
+        id="modal-quit"
+        style="
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(4px);
+          z-index: 999;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            background: linear-gradient(
+              170deg,
+              var(--bg-card) 0%,
+              var(--bg-card-alt) 100%
+            );
+            border: 2px solid var(--gold-dim);
+            border-radius: var(--radius);
+            padding: 22px 18px;
+            max-width: 360px;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow);
+          "
+        >
+          <div style="font-size: 32px; margin-bottom: 6px">⚠️</div>
+          <div
+            style="
+              font-family: var(--font-display);
+              font-size: 16px;
+              font-weight: bold;
+              color: var(--gold-bright);
+              margin-bottom: 6px;
+            "
+          >
+            Interrompere la Partita?
+          </div>
+          <div
+            style="
+              font-size: 13px;
+              color: var(--text-muted);
+              margin-bottom: 18px;
+              line-height: 1.4;
+            "
+          >
+            Sei sicuro di voler uscire? La sessione verrà interrotta.
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+            <button
+              type="button"
+              class="btn-sub"
+              style="padding: 10px; font-weight: bold"
+              onclick="closeQuitModal()"
+            >
+              Continua
+            </button>
+            <button
+              type="button"
+              class="btn-main"
+              style="
+                padding: 10px;
+                font-size: 13px;
+                background: var(--siena-red);
+              "
+              onclick="executeQuitGame()"
+            >
+              Esci al Menu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+
+      const GS = {
+        playType: "ai", // 'ai', 'local', 'online'
+        gameRule: "turn", // 'turn' (A Turni Classico) or 'speed' (Gara di Velocità / Buzzer)
+        isHost: false,
+        roomCode: null,
+        peer: null,
+        connections: [],
+        hostConn: null,
+        myId: null,
+        myName: "Ziad",
+        taxType: "category",
+        selectedFilter: "all",
+        targetLength: 20,
+        players: [],
+        scores: {},
+        strikes: {},
+        eliminated: new Set(),
+        deck: [],
+        deckIndex: 0,
+        turnIndex: 0,
+        currentCard: null,
+        currentOptions: [],
+        isLocked: false,
+        timerDuration: 25,
+        timerInterval: null,
+        reviewLog: [],
+        aiStreakTracker: 0,
+      };
+
+      let PREVIOUS_ROUND_LEMMAS = new Set();
+      const $ = (id) => document.getElementById(id);
+
+      function getActiveCorpus() {
+        return window.MASSIVE_VOCAB && Array.isArray(window.MASSIVE_VOCAB)
+          ? window.MASSIVE_VOCAB
+          : [];
+      }
+
+      /* =========================================================================
+         BULLETPROOF MULTI-TIER AUDIO ENGINE
+         ========================================================================= */
+      const directAudioObj = new Audio();
+      directAudioObj.preload = "auto";
+      let isAudioUnlocked = false;
+
+      function unlockAudioContext() {
+        if (isAudioUnlocked) return;
+        directAudioObj.play().catch(() => {});
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.resume();
+        }
+        isAudioUnlocked = true;
+      }
+      document.addEventListener("pointerdown", unlockAudioContext, {
+        once: true,
+      });
+      document.addEventListener("keydown", unlockAudioContext, { once: true });
+
+      function playSpeech(text) {
+        if (!text) return;
+        const clean = text.trim();
+        if (!clean) return;
+
+        unlockAudioContext();
+
+        const encoded = encodeURIComponent(clean);
+        const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=it&client=tw-ob&q=${encoded}`;
+
+        directAudioObj.pause();
+        directAudioObj.currentTime = 0;
+        directAudioObj.src = streamUrl;
+
+        const playPromise = directAudioObj.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn(
+              "Direct stream blocked, engaging browser voice engine:",
+              err
+            );
+            speakWithBrowserSpeech(clean);
+          });
+        }
+      }
+
+      function speakWithBrowserSpeech(cleanText) {
+        if (!("speechSynthesis" in window)) return;
+        try {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.resume();
+
+          const utter = new SpeechSynthesisUtterance(cleanText);
+          utter.lang = "it-IT";
+          utter.rate = 0.88;
+
+          const voices = window.speechSynthesis.getVoices();
+          const itVoice = voices.find(
+            (v) =>
+              v.lang &&
+              (v.lang.toLowerCase().startsWith("it") || v.lang.includes("IT"))
+          );
+          if (itVoice) utter.voice = itVoice;
+
+          window.speechSynthesis.speak(utter);
+        } catch (e) {
+          console.warn("SpeechSynthesis error:", e);
+        }
+      }
+
+      function speakCurrentWord() {
+        if (GS.currentCard && GS.currentCard.it) {
+          playSpeech(GS.currentCard.it);
+        }
+      }
+
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.speechSynthesis.getVoices();
+        };
+      }
+
+      /* =========================================================================
+         MENU NAVIGATION & DOM SETUP
+         ========================================================================= */
+      function setGameRule(rule) {
+        GS.gameRule = rule;
+        $("rule-turn").classList.toggle("active", rule === "turn");
+        $("rule-speed").classList.toggle("active", rule === "speed");
+      }
+
+      function selectPlayMode(mode) {
+        GS.playType = mode;
+        $("mode-ai").classList.toggle("active", mode === "ai");
+        $("mode-local").classList.toggle("active", mode === "local");
+        $("mode-online").classList.toggle("active", mode === "online");
+
+        $("local-pass-area").style.display =
+          mode === "local" ? "block" : "none";
+        $("online-room-area").style.display =
+          mode === "online" ? "flex" : "none";
+        $("start-local-btn-box").style.display =
+          mode === "online" ? "none" : "block";
+      }
+
+      function setLength(len) {
+        GS.targetLength = len;
+        document.querySelectorAll("#chips-length .chip").forEach((c) => {
+          c.classList.toggle("selected", parseInt(c.dataset.len, 10) === len);
+        });
+      }
+
+      function setTaxonomy(type) {
+        GS.taxType = type;
+        GS.selectedFilter = "all";
+        $("tab-tax-cat").classList.toggle("active", type === "category");
+        $("tab-tax-cefr").classList.toggle("active", type === "cefr");
+        renderTaxonomyGrid();
+      }
+
+      function renderTaxonomyGrid() {
+        const container = $("selection-grid");
+        container.innerHTML = "";
+        const dataset =
+          GS.taxType === "category" ? TAXONOMY_THEMES : TAXONOMY_CEFR;
+
+        dataset.forEach((item) => {
+          const card = document.createElement("div");
+          card.className =
+            "grid-card" + (item.id === GS.selectedFilter ? " selected" : "");
+          card.onclick = () => {
+            document
+              .querySelectorAll(".grid-card")
+              .forEach((c) => c.classList.remove("selected"));
+            card.classList.add("selected");
+            GS.selectedFilter = item.id;
+          };
+          card.innerHTML = `<span class="icon">${
+            item.icon || "📖"
+          }</span><div class="name">${item.label}</div>`;
+          container.appendChild(card);
+        });
+      }
+
+      function addPlayerField(defaultName = "") {
+        const list = $("players-list");
+        const count = list.children.length;
+        if (count >= 8) return;
+
+        const row = document.createElement("div");
+        row.className = "player-row";
+        row.innerHTML = `
+          <span class="player-num">${count + 1}</span>
+          <input type="text" class="player-input" value="${
+            defaultName || "Giocatore " + (count + 1)
+          }" maxlength="16">
+          ${
+            count >= 2
+              ? '<button class="btn-remove" onclick="removePlayerRow(this)">&times;</button>'
+              : ""
+          }
+        `;
+        list.appendChild(row);
+      }
+
+      function removePlayerRow(btn) {
+        btn.closest(".player-row").remove();
+        const rows = $("players-list").querySelectorAll(".player-row");
+        rows.forEach((r, idx) => {
+          r.querySelector(".player-num").textContent = idx + 1;
+        });
+      }
+
+      /* =========================================================================
+         ZERO-LATENCY ROOM GENERATION & PEERJS
+         ========================================================================= */
+      function generateRandomRoomCode() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let code = "";
+        for (let i = 0; i < 5; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+      }
+
+      function hostCreateRoom() {
+        const nameInput = $("input-username");
+        GS.myName =
+          nameInput && nameInput.value.trim() ? nameInput.value.trim() : "Host";
+        GS.isHost = true;
+        GS.roomCode = generateRandomRoomCode();
+
+        $("lobby-code-display").textContent = GS.roomCode;
+        $("lobby-host-controls").style.display = "block";
+        $("lobby-guest-notice").style.display = "none";
+        GS.players = [{ id: "host", name: GS.myName, isHost: true }];
+        updateLobbyUI();
+        showScreen("screen-lobby");
+
+        setTimeout(() => {
+          if (typeof Peer === "undefined") return;
+          if (GS.peer) {
+            try {
+              GS.peer.destroy();
+            } catch (e) {}
+          }
+
+          const peerId = `scopa${GS.roomCode.toLowerCase()}`;
+          GS.peer = new Peer(peerId, { debug: 0 });
+
+          GS.peer.on("open", (id) => {
+            GS.myId = id;
+            if (GS.players[0]) GS.players[0].id = id;
+          });
+
+          GS.peer.on("connection", (conn) => {
+            conn.on("open", () => {
+              GS.connections.push(conn);
+              conn.on("data", (data) => handleIncomingData(data, conn));
+            });
+
+            conn.on("close", () => {
+              GS.connections = GS.connections.filter((c) => c !== conn);
+              GS.players = GS.players.filter((p) => p.id !== conn.peer);
+              broadcastState("PLAYER_LIST", GS.players);
+              updateLobbyUI();
+            });
+          });
+
+          GS.peer.on("error", (err) => {
+            if (err.type === "unavailable-id") hostCreateRoom();
+          });
+        }, 0);
+      }
+
+      function joinExistingRoom() {
+        const nameInput = $("input-username");
+        const codeInput = $("input-room-code");
+
+        GS.myName =
+          nameInput && nameInput.value.trim()
+            ? nameInput.value.trim()
+            : "Ospite";
+        const rawCode =
+          codeInput && codeInput.value.trim()
+            ? codeInput.value.trim().toUpperCase()
+            : "";
+
+        if (!rawCode) {
+          alert("Inserisci il codice della stanza!");
+          return;
+        }
+
+        GS.isHost = false;
+        GS.roomCode = rawCode;
+        $("lobby-code-display").textContent = GS.roomCode;
+        $("lobby-host-controls").style.display = "none";
+        $("lobby-guest-notice").style.display = "block";
+        showScreen("screen-lobby");
+
+        setTimeout(() => {
+          if (typeof Peer === "undefined") return;
+          if (GS.peer) {
+            try {
+              GS.peer.destroy();
+            } catch (e) {}
+          }
+
+          GS.peer = new Peer(null, { debug: 0 });
+
+          GS.peer.on("open", (id) => {
+            GS.myId = id;
+            const targetPeerId = `scopa${rawCode.toLowerCase()}`;
+            const conn = GS.peer.connect(targetPeerId);
+
+            conn.on("open", () => {
+              GS.hostConn = conn;
+              conn.send({ type: "JOIN", name: GS.myName, id: GS.myId });
+            });
+
+            conn.on("data", (data) => handleIncomingData(data, conn));
+
+            conn.on("close", () => {
+              alert("La stanza è stata chiusa dall'Host.");
+              goToHome();
+            });
+          });
+
+          GS.peer.on("error", () => {
+            alert("Impossibile trovare la stanza. Verifica il codice.");
+          });
+        }, 0);
+      }
+
+      function copyRoomCode() {
+        navigator.clipboard.writeText(GS.roomCode).then(() => {
+          alert(`Codice "${GS.roomCode}" copiato! Invialo ai tuoi amici.`);
+        });
+      }
+
+      function updateLobbyUI() {
+        $("lobby-count").textContent = GS.players.length;
+        const list = $("lobby-players-list");
+        list.innerHTML = "";
+        GS.players.forEach((p) => {
+          const el = document.createElement("div");
+          el.className = "player-lobby-pill";
+          el.innerHTML = `<span><b>${p.name}</b> ${
+            p.isHost ? "👑 (Host)" : ""
+          }</span><span style="color:#5cdb95;">● Connesso</span>`;
+          list.appendChild(el);
+        });
+
+        const startBtn = $("btn-start-multiplayer");
+        if (startBtn) {
+          startBtn.disabled = GS.players.length < 2;
+          startBtn.textContent =
+            GS.players.length < 2
+              ? "In attesa di almeno 2 giocatori..."
+              : `Avvia Partita (${GS.players.length} Giocatori)`;
+        }
+      }
+
+      function broadcastState(type, payload) {
+        if (!GS.isHost) return;
+        GS.connections.forEach((conn) => {
+          if (conn.open) conn.send({ type, payload });
+        });
+      }
+
+      function handleIncomingData(msg) {
+        switch (msg.type) {
+          case "JOIN":
+            if (GS.isHost) {
+              GS.players.push({ id: msg.id, name: msg.name, isHost: false });
+              broadcastState("PLAYER_LIST", GS.players);
+              updateLobbyUI();
+            }
+            break;
+          case "PLAYER_LIST":
+            GS.players = msg.payload;
+            updateLobbyUI();
+            break;
+          case "GAME_START":
+            syncGameStart(msg.payload);
+            break;
+          case "NEXT_TURN":
+            syncNextTurn(msg.payload);
+            break;
+          case "ANSWER_EVENT":
+            if (GS.isHost)
+              evaluateAnswer(msg.payload.answer, msg.payload.playerId);
+            break;
+          case "ROUND_FEEDBACK":
+            renderTurnFeedback(msg.payload);
+            break;
+          case "SECRET_PASS":
+            renderSecretPass(msg.payload);
+            break;
+          case "GAME_OVER":
+            syncGameOver(msg.payload);
+            break;
+        }
+      }
+
+      /* =========================================================================
+         GAME ENGINE & LOGIC
+         ========================================================================= */
+      function generateSmartOptions(correctCard) {
+        const corpus = getActiveCorpus();
+        let posMatches = corpus.filter(
+          (w) => w.pos === correctCard.pos && w.en !== correctCard.en
+        );
+
+        if (correctCard.pos === "noun") {
+          const sameCat = posMatches.filter((w) => w.cat === correctCard.cat);
+          if (sameCat.length >= 3) posMatches = sameCat;
+        }
+
+        const shuffled = posMatches.sort(() => Math.random() - 0.5);
+        const picked = shuffled.slice(0, 3).map((w) => w.en);
+
+        while (picked.length < 3) {
+          const fallback = corpus.find(
+            (w) => w.en !== correctCard.en && !picked.includes(w.en)
+          );
+          picked.push(fallback ? fallback.en : "Opzione");
+        }
+
+        return picked.concat([correctCard.en]).sort(() => Math.random() - 0.5);
+      }
+
+      function startLocalGame() {
+        const myName = $("input-username").value.trim() || "Ziad";
+        GS.players = [];
+
+        if (GS.playType === "ai") {
+          GS.players = [
+            { id: "p1", name: myName, isAi: false },
+            { id: "ai", name: "Computer AI", isAi: true },
+          ];
+        } else {
+          const inputs = document.querySelectorAll(".player-input");
+          inputs.forEach((inp, idx) => {
+            const val = inp.value.trim();
+            if (val)
+              GS.players.push({ id: `p${idx + 1}`, name: val, isAi: false });
+          });
+          if (GS.players.length < 2) {
+            alert(
+              "Aggiungi almeno due partecipanti per giocare sullo stesso schermo."
+            );
+            return;
+          }
+        }
+
+        GS.myId = "p1";
+        GS.isHost = true;
+        launchMatchEngine();
+      }
+
+      function startMultiplayerGame() {
+        if (!GS.isHost || GS.players.length < 2) return;
+        launchMatchEngine();
+      }
+
+      function launchMatchEngine() {
+        const corpus = getActiveCorpus();
+        if (!corpus.length) {
+          alert("Errore: vocab_database.js non caricato!");
+          return;
+        }
+
+        const desiredCount = GS.targetLength === 9999 ? 100 : GS.targetLength;
+        let primaryPool = corpus.slice();
+
+        if (GS.taxType === "category" && GS.selectedFilter !== "all") {
+          primaryPool = primaryPool.filter((w) => w.cat === GS.selectedFilter);
+        } else if (GS.taxType === "cefr" && GS.selectedFilter !== "all") {
+          primaryPool = primaryPool.filter((w) => w.cefr === GS.selectedFilter);
+        }
+
+        let freshPool = primaryPool.filter(
+          (c) => !PREVIOUS_ROUND_LEMMAS.has(c.it)
+        );
+        let oldPool = primaryPool.filter((c) =>
+          PREVIOUS_ROUND_LEMMAS.has(c.it)
+        );
+
+        freshPool.sort(() => Math.random() - 0.5);
+        oldPool.sort(() => Math.random() - 0.5);
+
+        const carryOverCount = Math.min(2, oldPool.length);
+        const carriedWords = oldPool.slice(0, carryOverCount);
+        const neededFresh = desiredCount - carriedWords.length;
+        let builtDeck = carriedWords.concat(freshPool.slice(0, neededFresh));
+
+        if (builtDeck.length < desiredCount) {
+          const broader = corpus.filter(
+            (c) =>
+              !builtDeck.some((b) => b.it === c.it) &&
+              !PREVIOUS_ROUND_LEMMAS.has(c.it)
+          );
+          builtDeck = builtDeck.concat(
+            broader.slice(0, desiredCount - builtDeck.length)
+          );
+        }
+
+        GS.deck = builtDeck
+          .slice(0, desiredCount)
+          .sort(() => Math.random() - 0.5);
+        PREVIOUS_ROUND_LEMMAS = new Set(GS.deck.map((c) => c.it));
+
+        GS.deckIndex = 0;
+        GS.turnIndex = 0;
+        GS.scores = {};
+        GS.strikes = {};
+        GS.eliminated = new Set();
+        GS.reviewLog = [];
+        GS.aiStreakTracker = 0;
+
+        GS.players.forEach((p) => {
+          GS.scores[p.id] = 0;
+          GS.strikes[p.id] = 0;
+        });
+
+        const packet = {
+          deck: GS.deck,
+          targetLength: GS.targetLength,
+          gameRule: GS.gameRule,
+          players: GS.players,
+          scores: GS.scores,
+          strikes: GS.strikes,
+        };
+
+        if (GS.playType === "online") broadcastState("GAME_START", packet);
+        syncGameStart(packet);
+        hostNextTurn();
+      }
+
+      function syncGameStart(packet) {
+        GS.deck = packet.deck;
+        GS.targetLength = packet.targetLength;
+        GS.gameRule = packet.gameRule || "turn";
+        GS.players = packet.players;
+        GS.scores = packet.scores;
+        GS.strikes = packet.strikes;
+        GS.eliminated = new Set();
+        GS.deckIndex = 0;
+        GS.turnIndex = 0;
+        GS.reviewLog = [];
+
+        buildScoreboardHUD();
+        $("lbl-strikes").style.display =
+          GS.targetLength === 9999 ? "inline-block" : "none";
+        $("lbl-question-total").textContent =
+          GS.targetLength === 9999 ? " (∞)" : `/${GS.deck.length}`;
+        $("lbl-game-rule-mode").textContent =
+          GS.gameRule === "speed" ? "Gara Veloce" : "Turno";
+        showScreen("screen-game");
+      }
+
+      function hostNextTurn() {
+        if (
+          GS.deckIndex >= GS.deck.length ||
+          (GS.targetLength !== 9999 && GS.deckIndex >= GS.targetLength)
+        ) {
+          concludeMatch();
+          return;
+        }
+
+        if (GS.targetLength === 9999) {
+          const alive = GS.players.filter((p) => !GS.eliminated.has(p.id));
+          if (alive.length <= 1) {
+            concludeMatch();
+            return;
+          }
+        }
+
+        let activePlayerId = null;
+        if (GS.gameRule === "turn") {
+          let activePlayer = GS.players[GS.turnIndex % GS.players.length];
+          let guard = 0;
+          while (
+            GS.eliminated.has(activePlayer.id) &&
+            guard < GS.players.length * 2
+          ) {
+            GS.turnIndex++;
+            activePlayer = GS.players[GS.turnIndex % GS.players.length];
+            guard++;
+          }
+          activePlayerId = activePlayer.id;
+        }
+
+        const card = GS.deck[GS.deckIndex];
+        const options = generateSmartOptions(card);
+
+        const turnPacket = {
+          card: card,
+          options: options,
+          deckIndex: GS.deckIndex,
+          turnIndex: GS.turnIndex,
+          gameRule: GS.gameRule,
+          activePlayerId: activePlayerId,
+        };
+
+        if (GS.playType === "online") broadcastState("NEXT_TURN", turnPacket);
+        syncNextTurn(turnPacket);
+      }
+
+      function syncNextTurn(packet) {
+        GS.currentCard = packet.card;
+        GS.currentOptions = packet.options;
+        GS.deckIndex = packet.deckIndex;
+        GS.turnIndex = packet.turnIndex;
+        GS.gameRule = packet.gameRule || "turn";
+        GS.activePlayerId = packet.activePlayerId;
+        GS.isLocked = false;
+
+        $("lbl-question-num").textContent = GS.deckIndex + 1;
+
+        if (GS.gameRule === "speed") {
+          $("lbl-current-player").textContent = "Tutti (Chi prima arriva!)";
+        } else {
+          const activePlayer = GS.players.find(
+            (p) => p.id === packet.activePlayerId
+          );
+          if (activePlayer) {
+            $("lbl-current-player").textContent = activePlayer.name;
+            if (GS.targetLength === 9999) {
+              $("lbl-strikes").textContent = `Errori (${activePlayer.name}): ${
+                GS.strikes[activePlayer.id] || 0
+              }/3`;
+            }
+          }
+        }
+
+        $("card-lemma").textContent = packet.card.it;
+        $("badge-pos").textContent = packet.card.pos;
+        $("badge-cefr").textContent = packet.card.cefr;
+        $("context-feedback-box").style.display = "none";
+
+        const optionsBox = $("options-box");
+        optionsBox.innerHTML = "";
+        const labels = ["A", "B", "C", "D"];
+
+        // In Speed Mode, all human players can tap instantly. In Turn mode, only active player.
+        const isMyTurn =
+          GS.gameRule === "speed"
+            ? true
+            : GS.playType !== "online" || GS.myId === packet.activePlayerId;
+
+        packet.options.forEach((opt, idx) => {
+          const btn = document.createElement("button");
+          btn.className = "opt-btn";
+          btn.dataset.ans = opt;
+          btn.innerHTML = `<span class="opt-badge">${labels[idx]}</span><span>${opt}</span>`;
+          btn.disabled = !isMyTurn;
+          btn.onclick = () => onSelectOption(opt, btn);
+          optionsBox.appendChild(btn);
+        });
+
+        const activePl = GS.players.find((p) => p.id === packet.activePlayerId);
+        if (GS.gameRule === "turn" && activePl && activePl.isAi) {
+          simulateAiChoice(packet.card, packet.options);
+        } else {
+          runTurnTimer();
+        }
+      }
+
+      function simulateAiChoice(card, options) {
+        GS.isLocked = true;
+        stopTimer();
+
+        let acc = 0.65 + GS.aiStreakTracker * 0.08;
+        acc = Math.min(0.9, Math.max(0.4, acc));
+
+        const success = Math.random() < acc;
+        const picked = success ? card.en : options.find((o) => o !== card.en);
+
+        setTimeout(() => {
+          evaluateAnswer(picked, "ai");
+        }, 1400);
+      }
+
+      function onSelectOption(chosenText, chosenBtn) {
+        if (GS.isLocked) return;
+
+        // In speed mode, lock immediately upon first click so race condition is handled securely
+        if (GS.gameRule === "speed") {
+          GS.isLocked = true;
+          stopTimer();
+        }
+
+        const currentTurnPlayer = GS.players[GS.turnIndex % GS.players.length];
+        const activeId =
+          GS.playType === "online"
+            ? GS.myId
+            : GS.gameRule === "speed"
+            ? GS.myId
+            : currentTurnPlayer
+            ? currentTurnPlayer.id
+            : "p1";
+
+        if (GS.isHost || GS.playType !== "online") {
+          evaluateAnswer(chosenText, activeId);
+        } else {
+          GS.hostConn.send({
+            type: "ANSWER_EVENT",
+            payload: { answer: chosenText, playerId: GS.myId },
+          });
+        }
+      }
+
+      function evaluateAnswer(chosenText, responderId) {
+        if (!GS.isHost && GS.playType === "online") return;
+        stopTimer();
+
+        const card = GS.currentCard;
+        if (!card) return;
+
+        let responder = GS.players.find((p) => p.id === responderId);
+        if (!responder) {
+          responder = GS.players[GS.turnIndex % GS.players.length] || {
+            id: responderId,
+            name: "Giocatore",
+            isAi: false,
+          };
+        }
+
+        const isCorrect = chosenText === card.en;
+
+        const fbPacket = {
+          isCorrect: isCorrect,
+          card: card,
+          chosenAnswer: chosenText,
+          responderName: responder.name,
+          responderId: responderId,
+          scores: GS.scores,
+          strikes: GS.strikes,
+        };
+
+        // --- SPEED BUZZER MODE EVALUATION ---
+        if (GS.gameRule === "speed") {
+          if (isCorrect) {
+            GS.scores[responderId] = (GS.scores[responderId] || 0) + 1;
+            GS.deckIndex++;
+            GS.turnIndex++;
+
+            GS.reviewLog.push({
+              it: card.it,
+              en: card.en,
+              pos: card.pos,
+              cefr: card.cefr,
+              cat: card.cat,
+              ex: card.ex,
+              exEn: card.exEn,
+              player: responder.name,
+              hit: true,
+            });
+
+            fbPacket.scores = GS.scores;
+            if (GS.playType === "online")
+              broadcastState("ROUND_FEEDBACK", fbPacket);
+            renderTurnFeedback(fbPacket);
+            setTimeout(hostNextTurn, 2000);
+          } else {
+            // Wrong tap in speed mode: subtract point or penalize briefly, unlock buttons for others if online
+            GS.scores[responderId] = Math.max(
+              0,
+              (GS.scores[responderId] || 0) - 1
+            );
+
+            if (GS.playType === "ai") {
+              // Against AI: wrong click moves on immediately
+              GS.deckIndex++;
+              GS.turnIndex++;
+              renderTurnFeedback(fbPacket);
+              setTimeout(hostNextTurn, 2000);
+            } else {
+              // Allow other players to still guess by unlocking lock state
+              GS.isLocked = false;
+              renderTurnFeedback(fbPacket);
+              runTurnTimer();
+            }
+          }
+          return;
+        }
+
+        // --- CLASSIC TURN-BASED MODE EVALUATION ---
+        if (responder.isAi) {
+          if (isCorrect)
+            GS.scores[responderId] = (GS.scores[responderId] || 0) + 1;
+          GS.deckIndex++;
+          GS.turnIndex++;
+
+          GS.reviewLog.push({
+            it: card.it,
+            en: card.en,
+            pos: card.pos,
+            cefr: card.cefr,
+            cat: card.cat,
+            ex: card.ex,
+            exEn: card.exEn,
+            player: responder.name,
+            hit: isCorrect,
+          });
+
+          fbPacket.scores = GS.scores;
+          renderTurnFeedback(fbPacket);
+          setTimeout(hostNextTurn, 2000);
+          return;
+        }
+
+        if (isCorrect) {
+          GS.aiStreakTracker = Math.min(3, GS.aiStreakTracker + 1);
+          GS.scores[responderId] = (GS.scores[responderId] || 0) + 1;
+          GS.deckIndex++;
+          GS.turnIndex++;
+
+          GS.reviewLog.push({
+            it: card.it,
+            en: card.en,
+            pos: card.pos,
+            cefr: card.cefr,
+            cat: card.cat,
+            ex: card.ex,
+            exEn: card.exEn,
+            player: responder.name,
+            hit: true,
+          });
+
+          fbPacket.scores = GS.scores;
+          if (GS.playType === "online")
+            broadcastState("ROUND_FEEDBACK", fbPacket);
+          renderTurnFeedback(fbPacket);
+          setTimeout(hostNextTurn, 2000);
+        } else {
+          GS.aiStreakTracker = Math.max(-3, GS.aiStreakTracker - 1);
+
+          if (GS.targetLength === 9999) {
+            GS.strikes[responderId] = (GS.strikes[responderId] || 0) + 1;
+            if (GS.strikes[responderId] >= 3) {
+              GS.eliminated.add(responderId);
+            }
+          }
+
+          if (GS.playType === "ai") {
+            GS.deckIndex++;
+            GS.turnIndex++;
+
+            GS.reviewLog.push({
+              it: card.it,
+              en: card.en,
+              pos: card.pos,
+              cefr: card.cefr,
+              cat: card.cat,
+              ex: card.ex,
+              exEn: card.exEn,
+              player: responder.name,
+              hit: false,
+            });
+
+            renderTurnFeedback(fbPacket);
+            setTimeout(hostNextTurn, 2000);
+          } else {
+            GS.turnIndex++;
+            let nextPlayer = GS.players[GS.turnIndex % GS.players.length];
+            let guard = 0;
+            while (
+              GS.eliminated.has(nextPlayer.id) &&
+              guard < GS.players.length * 2
+            ) {
+              GS.turnIndex++;
+              nextPlayer = GS.players[GS.turnIndex % GS.players.length];
+              guard++;
+            }
+
+            const passPacket = {
+              failedPlayerName: responder.name,
+              failedPlayerId: responderId,
+              chosenAnswer: chosenText,
+              nextPlayerId: nextPlayer.id,
+              strikes: GS.strikes,
+              scores: GS.scores,
+              card: card,
+              options: GS.currentOptions,
+            };
+
+            if (GS.playType === "online")
+              broadcastState("SECRET_PASS", passPacket);
+            renderSecretPass(passPacket);
+          }
+        }
+      }
+
+      function renderSecretPass(packet) {
+        stopTimer();
+        GS.strikes = packet.strikes;
+        GS.scores = packet.scores;
+        updateScoreboardHUD();
+
+        const didIFail =
+          GS.myId === packet.failedPlayerId || GS.playType !== "online";
+
+        if (didIFail) {
+          document.querySelectorAll(".opt-btn").forEach((btn) => {
+            btn.disabled = true;
+            const ans = btn.dataset.ans;
+            if (ans === packet.card.en) {
+              btn.classList.add("correct");
+              const badge = btn.querySelector(".opt-badge");
+              if (badge) badge.textContent = "✓";
+              if (!btn.querySelector(".opt-btn-blue")) {
+                const check = document.createElement("span");
+                check.className = "opt-btn-blue";
+                check.textContent = "✓";
+                btn.appendChild(check);
+              }
+            }
+            if (ans === packet.chosenAnswer) {
+              btn.classList.add("wrong");
+              const badge = btn.querySelector(".opt-badge");
+              if (badge) badge.textContent = "✗";
+              if (!btn.querySelector(".opt-btn-cross")) {
+                const cross = document.createElement("span");
+                cross.className = "opt-btn-cross";
+                cross.textContent = "✗";
+                btn.appendChild(cross);
+              }
+            }
+          });
+        }
+
+        const fb = $("context-feedback-box");
+        fb.className = "context-feedback bad";
+        fb.innerHTML = `
+          <div class="feedback-head">
+            <span class="feedback-verdict bad">✗ Errore di ${packet.failedPlayerName}!</span>
+            <span style="color:var(--gold); font-size:11px;">PASSAGGIO SEGRETO</span>
+          </div>
+          <div class="context-sentence">La stessa parola passa al giocatore successivo!</div>
+        `;
+        fb.style.display = "block";
+
+        setTimeout(() => {
+          syncNextTurn({
+            card: packet.card,
+            options: packet.options,
+            deckIndex: GS.deckIndex,
+            turnIndex: GS.turnIndex,
+            gameRule: GS.gameRule,
+            activePlayerId: packet.nextPlayerId,
+          });
+        }, 1800);
+      }
+
+      function renderTurnFeedback(fb) {
+        stopTimer();
+        GS.scores = fb.scores;
+        GS.strikes = fb.strikes;
+        updateScoreboardHUD();
+
+        document.querySelectorAll(".opt-btn").forEach((btn) => {
+          const ans = btn.dataset.ans;
+          if (ans === fb.card.en) {
+            btn.disabled = true;
+            btn.classList.add("correct");
+            const badge = btn.querySelector(".opt-badge");
+            if (badge) badge.textContent = "✓";
+            if (!btn.querySelector(".opt-btn-blue")) {
+              const check = document.createElement("span");
+              check.className = "opt-btn-blue";
+              check.textContent = "✓";
+              btn.appendChild(check);
+            }
+          }
+
+          if (ans === fb.chosenAnswer && !fb.isCorrect) {
+            btn.classList.add("wrong");
+            const badge = btn.querySelector(".opt-badge");
+            if (badge) badge.textContent = "✗";
+            if (!btn.querySelector(".opt-btn-cross")) {
+              const cross = document.createElement("span");
+              cross.className = "opt-btn-cross";
+              cross.textContent = "✗";
+              btn.appendChild(cross);
+            }
+            if (GS.gameRule !== "speed" || fb.responderId === GS.myId) {
+              btn.disabled = true;
+            }
+          }
+        });
+
+        const fbBox = $("context-feedback-box");
+        fbBox.className = "context-feedback " + (fb.isCorrect ? "ok" : "bad");
+        fbBox.innerHTML = `
+          <div class="feedback-head">
+            <span class="feedback-verdict ${fb.isCorrect ? "ok" : "bad"}">${
+          fb.isCorrect ? "✓ Risposta Esatta" : "✗ Risposta Errata"
+        } (${fb.responderName})</span>
+            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--gold);">${fb.card.pos.toUpperCase()} &bull; ${
+          fb.card.cefr
+        }</span>
+          </div>
+          <div class="context-sentence">"${fb.card.ex}"</div>
+          <div class="context-trans">&rarr; ${fb.card.exEn}</div>
+        `;
+        fbBox.style.display = "block";
+      }
+
+      function runTurnTimer() {
+        stopTimer();
+        const progressBar = $("timer-bar");
+        const timerLabel = $("lbl-timer-text");
+        progressBar.classList.remove("urgent");
+
+        let remaining = GS.timerDuration;
+        progressBar.style.width = "100%";
+        timerLabel.textContent = `${remaining}s`;
+
+        const start = Date.now();
+        GS.timerInterval = setInterval(() => {
+          const elapsed = (Date.now() - start) / 1000;
+          const left = Math.max(0, GS.timerDuration - elapsed);
+          const pct = (left / GS.timerDuration) * 100;
+
+          progressBar.style.width = `${pct}%`;
+          timerLabel.textContent = `${Math.ceil(left)}s`;
+
+          if (left <= 5) progressBar.classList.add("urgent");
+
+          if (left <= 0) {
+            stopTimer();
+            if (GS.isHost) {
+              evaluateAnswer("__TIMEOUT__", GS.activePlayerId || "timeout");
+            }
+          }
+        }, 100);
+      }
+
+      function stopTimer() {
+        if (GS.timerInterval) clearInterval(GS.timerInterval);
+        GS.timerInterval = null;
+      }
+
+      function buildScoreboardHUD() {
+        const strip = $("scores-strip");
+        strip.innerHTML = "";
+        GS.players.forEach((p) => {
+          const el = document.createElement("div");
+          el.className = "score-card" + (p.isAi ? " computer" : "");
+          el.id = `sc-player-${p.id}`;
+          el.innerHTML = `
+            <div class="s-name">${p.name}</div>
+            <div class="s-pts">0 pt</div>
+            ${
+              GS.targetLength === 9999
+                ? '<div class="s-strikes">Errori: 0/3</div>'
+                : ""
+            }
+          `;
+          strip.appendChild(el);
+        });
+      }
+
+      function updateScoreboardHUD() {
+        GS.players.forEach((p) => {
+          const sc = $(`sc-player-${p.id}`);
+          if (sc) {
+            sc.querySelector(".s-pts").textContent = `${
+              GS.scores[p.id] || 0
+            } pt`;
+            if (GS.targetLength === 9999) {
+              const strEl = sc.querySelector(".s-strikes");
+              if (strEl)
+                strEl.textContent = `Errori: ${GS.strikes[p.id] || 0}/3`;
+              if (GS.eliminated.has(p.id)) sc.style.opacity = "0.45";
+            }
+          }
+        });
+      }
+
+      function concludeMatch() {
+        stopTimer();
+        const sorted = GS.players
+          .map((p) => ({
+            name: p.name,
+            id: p.id,
+            score: GS.scores[p.id] || 0,
+            eliminated: GS.eliminated.has(p.id),
+          }))
+          .sort((a, b) => b.score - a.score);
+
+        const packet = { sortedResults: sorted };
+        if (GS.playType === "online") broadcastState("GAME_OVER", packet);
+        syncGameOver(packet);
+      }
+
+      function syncGameOver(packet) {
+        stopTimer();
+        showScreen("screen-over");
+
+        const sorted = packet.sortedResults;
+        const winner = sorted[0];
+
+        if (GS.targetLength === 9999) {
+          const survivors = sorted.filter((p) => !p.eliminated);
+          if (survivors.length === 1) {
+            $(
+              "winner-banner"
+            ).textContent = `🏆 ${survivors[0].name} vince per sopravvivenza!`;
+          } else {
+            $(
+              "winner-banner"
+            ).textContent = `Partita conclusa per eliminazione!`;
+          }
+        } else {
+          $(
+            "winner-banner"
+          ).textContent = `Vittoria per ${winner.name} con ${winner.score} punti!`;
+        }
+
+        const sb = $("final-scoreboard");
+        sb.innerHTML = sorted
+          .map(
+            (p) => `
+              <div style="display:flex; justify-content:space-between; background:var(--bg-surface); padding:8px 12px; border-radius:4px; border:1px solid #3c2a1e;">
+                <span>${p.name} ${
+              p.eliminated
+                ? '<b style="color:var(--siena-red); font-size:11px;">(ELIMINATO)</b>'
+                : ""
+            }</span>
+                <b style="color:var(--gold-bright); font-family:var(--font-mono);">${
+                  p.score
+                } pt</b>
+              </div>
+            `
+          )
+          .join("");
+
+        $("btn-replay").style.display =
+          GS.playType !== "online" || GS.isHost ? "block" : "none";
+      }
+
+      function replayGame() {
+        if (GS.playType === "online") {
+          if (GS.isHost) launchMatchEngine();
+        } else {
+          startLocalGame();
+        }
+      }
+
+      function showGameListScreen() {
+        const container = $("lista-cards-container");
+        container.innerHTML = "";
+
+        if (!GS.reviewLog.length) {
+          container.innerHTML =
+            '<div style="text-align:center; padding:20px; color:var(--text-dim);">Nessun lemma registrato.</div>';
+        } else {
+          GS.reviewLog.forEach((item) => {
+            const card = document.createElement("div");
+            card.className = `lista-card ${item.hit ? "hit" : "miss"}`;
+
+            const topRow = document.createElement("div");
+            topRow.className = "lc-top";
+
+            const leftWrap = document.createElement("div");
+            leftWrap.style.cssText =
+              "display:flex; align-items:center; gap:8px;";
+
+            const lemmaSpan = document.createElement("span");
+            lemmaSpan.className = "lc-it";
+            lemmaSpan.textContent = item.it;
+
+            const audioBtn = document.createElement("button");
+            audioBtn.className = "tts-btn";
+            audioBtn.type = "button";
+            audioBtn.style.cssText = "width:26px; height:26px; font-size:12px;";
+            audioBtn.textContent = "🔊";
+            audioBtn.onclick = () => playSpeech(item.it);
+
+            leftWrap.appendChild(lemmaSpan);
+            leftWrap.appendChild(audioBtn);
+
+            const tagSpan = document.createElement("span");
+            tagSpan.className = "lc-tag";
+            tagSpan.textContent = `${item.pos} • ${item.cefr}`;
+
+            topRow.appendChild(leftWrap);
+            topRow.appendChild(tagSpan);
+
+            const enRow = document.createElement("div");
+            enRow.className = "lc-en";
+            enRow.textContent = `${item.en} (${
+              item.hit ? "✓ Presa" : "✗ Sbagliata"
+            })`;
+
+            const exRow = document.createElement("div");
+            exRow.className = "lc-ex";
+            exRow.textContent = `"${item.ex}"`;
+
+            card.appendChild(topRow);
+            card.appendChild(enRow);
+            card.appendChild(exRow);
+
+            container.appendChild(card);
+          });
+        }
+
+        showScreen("screen-lista");
+      }
+
+      function downloadPlayedText() {
+        const lines = ["=== LISTA DELLA PARTITA — VOCABOLARIO ITALIANO ==="];
+        lines.push("Generato il: " + new Date().toLocaleString("it-IT"));
+        lines.push("--------------------------------------------------");
+        GS.reviewLog.forEach((r) => {
+          lines.push(`[${r.pos.toUpperCase()} | ${r.cefr}] ${r.it} = ${r.en}`);
+          lines.push(`  Es: "${r.ex}" -> ${r.exEn}`);
+          lines.push(
+            `  Esito: ${r.hit ? "CORRETTO" : "ERRATO"} (Giocatore: ${r.player})`
+          );
+          lines.push("");
+        });
+
+        const blob = new Blob([lines.join("\n")], {
+          type: "text/plain;charset=utf-8",
+        });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "played.txt";
+        a.click();
+      }
+
+      function confirmQuit() {
+        const m = $("modal-quit");
+        if (m) m.style.display = "flex";
+      }
+
+      function closeQuitModal() {
+        const m = $("modal-quit");
+        if (m) m.style.display = "none";
+      }
+
+      function executeQuitGame() {
+        closeQuitModal();
+        stopTimer();
+        leaveRoomAndReturn();
+      }
+
+      function leaveRoomAndReturn() {
+        if (GS.peer) {
+          GS.peer.destroy();
+          GS.peer = null;
+        }
+        goToHome();
+      }
+
+      function goToHome() {
+        stopTimer();
+        showScreen("screen-home");
+      }
+
+      function showScreen(id) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((s) => s.classList.remove("active"));
+        $(id).classList.add("active");
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        renderTaxonomyGrid();
+        addPlayerField("Giocatore 1");
+        addPlayerField("Giocatore 2");
+        selectPlayMode("ai");
+      });
+    </script>
+  </body>
+</html>
