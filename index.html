@@ -958,8 +958,7 @@
               >Errori: 0/3</span
             >
             <span id="lbl-turn-info"
-              >Stile:
-              <b class="active-name" id="lbl-game-rule-mode">Turno</b></span
+              >Turno: <b class="active-name" id="lbl-current-player">Ziad</b></span
             >
           </div>
         </div>
@@ -1241,7 +1240,7 @@
       }
 
       /* =========================================================================
-         BULLETPROOF MULTI-TIER AUDIO ENGINE
+         BULLETPROOF MULTI-TIER AUDIO ENGINE WITH CACHE BUSTER
          ========================================================================= */
       const directAudioObj = new Audio();
       directAudioObj.preload = "auto";
@@ -1267,8 +1266,9 @@
 
         unlockAudioContext();
 
+        const cacheBuster = Date.now();
         const encoded = encodeURIComponent(clean);
-        const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=it&client=tw-ob&q=${encoded}`;
+        const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=it&client=tw-ob&q=${encoded}&cb=${cacheBuster}`;
 
         directAudioObj.pause();
         directAudioObj.currentTime = 0;
@@ -1824,13 +1824,13 @@
         $("lbl-question-num").textContent = GS.deckIndex + 1;
 
         if (GS.gameRule === "speed") {
-          $("lbl-current-player").textContent = "Tutti (Chi prima arriva!)";
+          if ($("lbl-current-player")) $("lbl-current-player").textContent = "Tutti (Chi prima arriva!)";
         } else {
           const activePlayer = GS.players.find(
             (p) => p.id === packet.activePlayerId
           );
           if (activePlayer) {
-            $("lbl-current-player").textContent = activePlayer.name;
+            if ($("lbl-current-player")) $("lbl-current-player").textContent = activePlayer.name;
             if (GS.targetLength === 9999) {
               $("lbl-strikes").textContent = `Errori (${activePlayer.name}): ${
                 GS.strikes[activePlayer.id] || 0
@@ -2194,11 +2194,11 @@
         fbBox.innerHTML = `
           <div class="feedback-head">
             <span class="feedback-verdict ${fb.isCorrect ? "ok" : "bad"}">${
-          fb.isCorrect ? "✓ Risposta Esatta" : "✗ Risposta Errata"
-        } (${fb.responderName})</span>
+              fb.isCorrect ? "✓ Risposta Esatta" : "✗ Risposta Errata"
+            } (${fb.responderName})</span>
             <span style="font-family: var(--font-mono); font-size: 11px; color: var(--gold);">${fb.card.pos.toUpperCase()} &bull; ${
-          fb.card.cefr
-        }</span>
+              fb.card.cefr
+            }</span>
           </div>
           <div class="context-sentence">"${fb.card.ex}"</div>
           <div class="context-trans">&rarr; ${fb.card.exEn}</div>
@@ -2210,11 +2210,11 @@
         stopTimer();
         const progressBar = $("timer-bar");
         const timerLabel = $("lbl-timer-text");
-        progressBar.classList.remove("urgent");
+        if (progressBar) progressBar.classList.remove("urgent");
 
         let remaining = GS.timerDuration;
-        progressBar.style.width = "100%";
-        timerLabel.textContent = `${remaining}s`;
+        if (progressBar) progressBar.style.width = "100%";
+        if (timerLabel) timerLabel.textContent = `${remaining}s`;
 
         const start = Date.now();
         GS.timerInterval = setInterval(() => {
@@ -2222,10 +2222,10 @@
           const left = Math.max(0, GS.timerDuration - elapsed);
           const pct = (left / GS.timerDuration) * 100;
 
-          progressBar.style.width = `${pct}%`;
-          timerLabel.textContent = `${Math.ceil(left)}s`;
+          if (progressBar) progressBar.style.width = `${pct}%`;
+          if (timerLabel) timerLabel.textContent = `${Math.ceil(left)}s`;
 
-          if (left <= 5) progressBar.classList.add("urgent");
+          if (left <= 5 && progressBar) progressBar.classList.add("urgent");
 
           if (left <= 0) {
             stopTimer();
@@ -2304,18 +2304,12 @@
         if (GS.targetLength === 9999) {
           const survivors = sorted.filter((p) => !p.eliminated);
           if (survivors.length === 1) {
-            $(
-              "winner-banner"
-            ).textContent = `🏆 ${survivors[0].name} vince per sopravvivenza!`;
+            $("winner-banner").textContent = `🏆 ${survivors[0].name} vince per sopravvivenza!`;
           } else {
-            $(
-              "winner-banner"
-            ).textContent = `Partita conclusa per eliminazione!`;
+            $("winner-banner").textContent = `Partita conclusa per eliminazione!`;
           }
         } else {
-          $(
-            "winner-banner"
-          ).textContent = `Vittoria per ${winner.name} con ${winner.score} punti!`;
+          $("winner-banner").textContent = `Vittoria per ${winner.name} con ${winner.score} punti!`;
         }
 
         const sb = $("final-scoreboard");
@@ -2324,10 +2318,10 @@
             (p) => `
               <div style="display:flex; justify-content:space-between; background:var(--bg-surface); padding:8px 12px; border-radius:4px; border:1px solid #3c2a1e;">
                 <span>${p.name} ${
-              p.eliminated
-                ? '<b style="color:var(--siena-red); font-size:11px;">(ELIMINATO)</b>'
-                : ""
-            }</span>
+                  p.eliminated
+                    ? '<b style="color:var(--siena-red); font-size:11px;">(ELIMINATO)</b>'
+                    : ""
+                }</span>
                 <b style="color:var(--gold-bright); font-family:var(--font-mono);">${
                   p.score
                 } pt</b>
