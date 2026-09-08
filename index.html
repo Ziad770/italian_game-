@@ -1184,8 +1184,8 @@
       "use strict";
 
       const GS = {
-        playType: "ai", // 'ai', 'local', 'online'
-        gameRule: "turn", // 'turn' (A Turni Classico) or 'speed' (Gara di Velocità / Buzzer)
+        playType: "ai",
+        gameRule: "turn",
         isHost: false,
         roomCode: null,
         peer: null,
@@ -1214,6 +1214,25 @@
 
       let PREVIOUS_ROUND_LEMMAS = new Set();
       const $ = (id) => document.getElementById(id);
+
+      const TAXONOMY_THEMES = [
+        { id: "all", label: "Tutto l'Archivio", icon: "🌐" },
+        { id: "casa", label: "Casa & Spazi", icon: "🏠" },
+        { id: "cibo", label: "Cibo & Cucina", icon: "🍝" },
+        { id: "viaggio", label: "Viaggi & Città", icon: "✈️" },
+        { id: "lavoro", label: "Lavoro & Carriera", icon: "💼" },
+        { id: "scuola", label: "Studio & Cultura", icon: "📚" },
+        { id: "aggettivi", label: "Descrizioni", icon: "📝" },
+      ];
+
+      const TAXONOMY_CEFR = [
+        { id: "all", label: "Tutti i Livelli", sub: "A1 → C1 Integrato" },
+        { id: "A1", label: "Livello A1", sub: "Principiante assoluto" },
+        { id: "A2", label: "Livello A2", sub: "Elementare / Base" },
+        { id: "B1", label: "Livello B1", sub: "Intermedio autonomo" },
+        { id: "B2", label: "Livello B2", sub: "Intermedio superiore" },
+        { id: "C1", label: "Livello C1", sub: "Padronanza accademica" },
+      ];
 
       function getActiveCorpus() {
         return window.MASSIVE_VOCAB && Array.isArray(window.MASSIVE_VOCAB)
@@ -1344,6 +1363,7 @@
 
       function renderTaxonomyGrid() {
         const container = $("selection-grid");
+        if (!container) return;
         container.innerHTML = "";
         const dataset =
           GS.taxType === "category" ? TAXONOMY_THEMES : TAXONOMY_CEFR;
@@ -1828,7 +1848,6 @@
         optionsBox.innerHTML = "";
         const labels = ["A", "B", "C", "D"];
 
-        // In Speed Mode, all human players can tap instantly. In Turn mode, only active player.
         const isMyTurn =
           GS.gameRule === "speed"
             ? true
@@ -1870,7 +1889,6 @@
       function onSelectOption(chosenText, chosenBtn) {
         if (GS.isLocked) return;
 
-        // In speed mode, lock immediately upon first click so race condition is handled securely
         if (GS.gameRule === "speed") {
           GS.isLocked = true;
           stopTimer();
@@ -1924,7 +1942,6 @@
           strikes: GS.strikes,
         };
 
-        // --- SPEED BUZZER MODE EVALUATION ---
         if (GS.gameRule === "speed") {
           if (isCorrect) {
             GS.scores[responderId] = (GS.scores[responderId] || 0) + 1;
@@ -1949,20 +1966,17 @@
             renderTurnFeedback(fbPacket);
             setTimeout(hostNextTurn, 2000);
           } else {
-            // Wrong tap in speed mode: subtract point or penalize briefly, unlock buttons for others if online
             GS.scores[responderId] = Math.max(
               0,
               (GS.scores[responderId] || 0) - 1
             );
 
             if (GS.playType === "ai") {
-              // Against AI: wrong click moves on immediately
               GS.deckIndex++;
               GS.turnIndex++;
               renderTurnFeedback(fbPacket);
               setTimeout(hostNextTurn, 2000);
             } else {
-              // Allow other players to still guess by unlocking lock state
               GS.isLocked = false;
               renderTurnFeedback(fbPacket);
               runTurnTimer();
@@ -1971,7 +1985,6 @@
           return;
         }
 
-        // --- CLASSIC TURN-BASED MODE EVALUATION ---
         if (responder.isAi) {
           if (isCorrect)
             GS.scores[responderId] = (GS.scores[responderId] || 0) + 1;
