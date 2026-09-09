@@ -435,23 +435,20 @@
         color: var(--gold-bright);
         font-size: 14px;
         cursor: pointer;
-
         display: inline-flex;
         align-items: center;
         justify-content: center;
-
         flex-shrink: 0;
-
         transition: transform 0.15s ease, background 0.15s ease;
       }
-
-      .lista-tts-btn:hover {
+      .lista-tts-btn:hover,
+      .tts-btn:hover {
         transform: scale(1.1);
         background: var(--terracotta);
         color: #fff;
       }
-
-      .lista-tts-btn:active {
+      .lista-tts-btn:active,
+      .tts-btn:active {
         transform: scale(0.95);
       }
 
@@ -459,11 +456,6 @@
         display: flex;
         align-items: center;
         gap: 8px;
-      }
-      .tts-btn:hover {
-        transform: scale(1.1);
-        background: var(--terracotta);
-        color: #fff;
       }
 
       .card-question {
@@ -518,7 +510,6 @@
         flex-shrink: 0;
       }
 
-      /* RISPOSTA ESATTA EVIDENZIATA IN BLU */
       .opt-btn.correct {
         background: var(--trapani-deep) !important;
         border-color: var(--trapani-bright) !important;
@@ -532,7 +523,6 @@
         border-color: #fff !important;
       }
 
-      /* RISPOSTA ERRATA EVIDENZIATA IN ROSSO */
       .opt-btn.wrong {
         background: var(--siena-dark) !important;
         border-color: var(--siena-red) !important;
@@ -864,10 +854,10 @@
 
         <div class="section-label">Lunghezza Partita</div>
         <div class="chip-group" id="chips-length">
-          <div class="chip" data-len="10" onclick="setLength(10)">
+          <div class="chip selected" data-len="10" onclick="setLength(10)">
             10 Parole
           </div>
-          <div class="chip selected" data-len="20" onclick="setLength(20)">
+          <div class="chip" data-len="20" onclick="setLength(20)">
             20 Parole
           </div>
           <div class="chip" data-len="30" onclick="setLength(30)">
@@ -989,7 +979,7 @@
           <div class="turn-hud">
             <span
               >Giro <b id="lbl-question-num">1</b
-              ><span id="lbl-question-total">/20</span></span
+              ><span id="lbl-question-total">/10</span></span
             >
             <span
               >Turno:
@@ -1008,6 +998,7 @@
             <button
               class="tts-btn"
               type="button"
+              onpointerdown="speakCurrentWord()"
               onclick="speakCurrentWord()"
               title="Ascolta pronuncia italiana"
             >
@@ -1649,7 +1640,7 @@
         myName: "Ziad",
         taxType: "category",
         selectedFilter: "all",
-        targetLength: 20,
+        targetLength: 10,
         selectedTimer: 15,
         players: [],
         scores: {},
@@ -1684,231 +1675,287 @@
 
       const $ = (id) => document.getElementById(id);
 
-      /* =========================================================================
-         SINTESI E RIPRODUZIONE AUDIO A TRIPLO STADIO
-         ========================================================================= */
-      /* =========================================================================
-   ITALIAN TEXT-TO-SPEECH
-   ========================================================================= */
+      //* =========================================================================
+      //MOTORE AUDIO "FIRST-WINS" (ZERO RITARDO, ZERO DOPPIA VOCE)
+      //========================================================================= */
+      let currentPlaybackId = 0;
+      let fastAudioPlayer = null;
+      let cachedItalianVoice = null;
 
-      let italianVoice = null;
-
-      function findItalianVoice() {
-        if (!("speechSynthesis" in window)) {
-          return null;
+      function getFastAudioPlayer() {
+        if (!fastAudioPlayer) {
+          fastAudioPlayer = document.createElement("audio");
+          fastAudioPlayer.id = "fast-stream-player";
+          fastAudioPlayer.style.display = "none";
+          document.body.appendChild(fastAudioPlayer);
         }
-
-        const voices = window.speechSynthesis.getVoices();
-
-        console.log("Available voices:", voices);
-
-        return (
-          voices.find((v) => v.lang.toLowerCase() === "it-it") ||
-          voices.find((v) => v.lang.toLowerCase().startsWith("it")) ||
-          voices.find((v) => /italian|italiano/i.test(v.name)) ||
-          null
-        );
+        return fastAudioPlayer;
       }
 
-      function loadVoices() {
-        italianVoice = findItalianVoice();
-
-        if (italianVoice) {
-          console.log(
-            "Italian voice selected:",
-            italianVoice.name,
-            italianVoice.lang
-          );
-        } else {
-          console.warn("NO ITALIAN VOICE FOUND");
-        }
+      function setupVoices() {
+        if (!("speechSynthesis" in window)) return;
+        const voices = window.speechSynthesis.getVoices();
+        cachedItalianVoice =
+          voices.find(
+            (v) =>
+              v.lang && v.lang.toLowerCase().replace("_", "-").startsWith("it")
+          ) ||
+          voices.find((v) => /italian|italiano/i.test(v.name)) ||
+          null;
       }
 
       if ("speechSynthesis" in window) {
-        loadVoices();
+        setupVoices();
+        window.speechSynthesis.onvoiceschanged = setupVoices;
+      }
 
-        window.speechSynthesis.onvoiceschanged = function () {
-          loadVoices();
+      function speakItalianWord(word) {
+        const text = String(word || "").trim();
+        if (!text) return;
+
+        const thisCallId = ++currentPlaybackId;
+
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+        const player = getFastAudioPlayer();
+        player.pause();
+        player.currentTime = 0;
+
+        let hasSpoken = false;
+
+        function claimAudioWin(sourceName) {
+          if (thisCallId !== currentPlaybackId) return false;
+          if (hasSpoken) return false;
+          hasSpoken = true;
+
+          if (sourceName === "stream") {
+            if ("speechSynthesis" in window) {
+              window.speechSynthesis.cancel();
+            }
+          } else if (sourceName === "native") {
+            player.pause();
+            player.currentTime = 0;
+          }
+          return true;
+        }
+
+        // STRATEGIA 1: Stream immediato
+        const encoded = encodeURIComponent(text);
+        player.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=it&q=${encoded}`;
+        player.playbackRate = 1.1;
+
+        player.onplay = () => {
+          claimAudioWin("stream");
         };
 
-        setTimeout(loadVoices, 500);
-        setTimeout(loadVoices, 1500);
-        setTimeout(loadVoices, 3000);
+        const playPromise = player.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {});
+        }
+
+        // STRATEGIA 2: Sintesi vocale del browser in parallelo
+        if ("speechSynthesis" in window) {
+          try {
+            if (window.speechSynthesis.paused) {
+              window.speechSynthesis.resume();
+            }
+
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = "it-IT";
+            utter.rate = 1.05;
+            utter.pitch = 1.0;
+
+            if (!cachedItalianVoice) setupVoices();
+            if (cachedItalianVoice) {
+              utter.voice = cachedItalianVoice;
+            }
+
+            utter.onstart = () => {
+              if (!claimAudioWin("native")) {
+                window.speechSynthesis.cancel();
+              }
+            };
+
+            window.speechSynthesis.speak(utter);
+          } catch (e) {}
+        }
       }
 
       function speakCurrentWord() {
-        const word =
-          GS.currentCard?.it ||
-          document.getElementById("card-lemma")?.textContent ||
-          "";
-
-        const text = String(word).trim();
-
-        console.log("🔊 Audio requested:", text);
-
-        if (!text) {
-          console.warn("No Italian word to pronounce.");
-          return;
-        }
-
-        /*
-         * PRIMARY METHOD
-         * Use an actual audio stream instead of Edge's
-         * unreliable SpeechSynthesis engine.
-         */
-
-        try {
-          if (window.currentItalianAudio) {
-            window.currentItalianAudio.pause();
-            window.currentItalianAudio.currentTime = 0;
-          }
-
-          /*
-           * Google Translate's TTS endpoint returns actual
-           * Italian audio for the requested word.
-           */
-          const audioUrl =
-            "https://translate.google.com/translate_tts" +
-            "?ie=UTF-8" +
-            "&client=tw-ob" +
-            "&tl=it" +
-            "&q=" +
-            encodeURIComponent(text);
-
-          const audio = new Audio();
-
-          window.currentItalianAudio = audio;
-
-          audio.preload = "auto";
-          audio.volume = 1;
-
-          audio.onplay = function () {
-            console.log("🔊 ITALIAN AUDIO STARTED:", text);
-          };
-
-          audio.onended = function () {
-            console.log("✅ ITALIAN AUDIO FINISHED:", text);
-          };
-
-          audio.onerror = function (event) {
-            console.error("❌ External Italian audio failed:", event);
-
-            /*
-             * FINAL FALLBACK:
-             * Try browser SpeechSynthesis without forcing
-             * a Microsoft voice.
-             */
-            speakWithBrowserFallback(text);
-          };
-
-          audio.src = audioUrl;
-
-          /*
-           * Explicitly call play() because this function is
-           * triggered directly by the user's button click.
-           */
-          const playPromise = audio.play();
-
-          if (playPromise !== undefined) {
-            playPromise.catch(function (error) {
-              console.error("❌ Audio playback failed:", error);
-
-              speakWithBrowserFallback(text);
-            });
-          }
-        } catch (error) {
-          console.error("❌ Audio creation failed:", error);
-
-          speakWithBrowserFallback(text);
-        }
-      }
-
-      /*
-       * Browser fallback.
-       *
-       * This is NOT the primary method anymore.
-       * We only use it if the real audio request fails.
-       */
-      function speakWithBrowserFallback(text) {
-        console.log("🔄 Trying browser speech fallback:", text);
-
-        if (!("speechSynthesis" in window)) {
-          console.error("Browser speech synthesis unavailable.");
-          return;
-        }
-
-        const synth = window.speechSynthesis;
-
-        try {
-          synth.cancel();
-        } catch (e) {}
-
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        utterance.lang = "it-IT";
-        utterance.rate = 0.85;
-        utterance.pitch = 1;
-        utterance.volume = 1;
-
-        /*
-         * IMPORTANT:
-         * Do NOT assign italianVoice here.
-         *
-         * Edge was failing with its Microsoft online voices.
-         */
-
-        utterance.onstart = function () {
-          console.log("🔊 BROWSER FALLBACK STARTED:", text);
-        };
-
-        utterance.onend = function () {
-          console.log("✅ BROWSER FALLBACK FINISHED:", text);
-        };
-
-        utterance.onerror = function (event) {
-          console.error("❌ Browser fallback failed:", event.error);
-        };
-
-        setTimeout(function () {
-          try {
-            synth.speak(utterance);
-          } catch (error) {
-            console.error("❌ Browser fallback exception:", error);
-          }
-        }, 100);
+        const current =
+          GS.currentCard?.it || $("card-lemma")?.textContent || "";
+        if (current) speakItalianWord(current);
       }
       /* =========================================================================
-         PULIZIA RIGOROSA DELLE DEFINIZIONI E DISTRATTORI
+               PULIZIA RIGOROSA DELLE DEFINIZIONI E DISTRATTORI
+               ========================================================================= */
+      /* =========================================================================
+         MAPPA OVERRIDE DEFINIZIONI BIZZARRE (WIKTIONARY FIXES)
          ========================================================================= */
-      function cleanDefinition(str) {
+      const DEFINITION_OVERRIDES = {
+        // Forme verbali / participi scambiati per aggettivi rari
+        tagliato: "cut",
+        studiato: "studied",
+        arrivato: "arrived",
+        riuscito: "succeeded / managed",
+        ordinato: "tidy / ordered",
+        rovinato: "ruined / damaged",
+        buon: "good",
+        buono: "good",
+        regale: "royal / regal",
+        stato: "been / state",
+        fatto: "done / made",
+        detto: "said",
+        visto: "seen",
+        trovato: "found",
+        perduto: "lost",
+        perso: "lost",
+        sentito: "heard / felt",
+        scritto: "written",
+        preso: "taken",
+        nato: "born",
+        chiuso: "closed",
+        aperto: "open",
+        chiusa: "closed",
+        aperta: "open",
+      };
+
+      function cleanDefinition(str, lemmaIt = "") {
+        const itKey = String(lemmaIt || "")
+          .trim()
+          .toLowerCase();
+        if (itKey && DEFINITION_OVERRIDES[itKey]) {
+          return DEFINITION_OVERRIDES[itKey];
+        }
+
         if (!str || typeof str !== "string") return "";
+
         // Rimuove note tra parentesi tonde o quadre
         let clean = str.replace(/\(.*?\)/g, "").replace(/\[.*?\]/g, "");
-        // Prende solo il primo blocco principale diviso da punto e virgola o slash
+
+        // Rimuove perifrasi da dizionario descrittivo
+        clean = clean.replace(
+          /^that has had a certain outcome or result/i,
+          "successful"
+        );
+        clean = clean.replace(/^used other than figuratively.*?:\s*/i, "");
+        clean = clean.replace(/^pertaining to a king or kingdom/i, "royal");
+
+        // Prende solo il primo gruppo di definizioni
         clean = clean.split(";")[0].split("/")[0];
-        // Prende il primo termine pulito se sono elencati sinonimi con la virgola
         let parts = clean.split(",");
         let result = parts[0].trim().toLowerCase();
 
-        // Rimuove 'to ' iniziale se duplicato per omogeneità
         if (result.startsWith("to to "))
           result = result.replace("to to ", "to ");
         return result;
       }
 
+      /* =========================================================================
+         FILTRO RIGOROSO TOTALE (ELIMINA SAIO, FORME DIMINUTIVE E METADATI)
+         ========================================================================= */
+
+      // Lista nera di lemmi fantasma o aberrazioni di scraping presenti nel database
+      const BLACKLISTED_LEMMAS = new Set([
+        "saio",
+        "sai",
+        "staio",
+        "stai",
+        "vaio",
+        "faio",
+        "fai",
+        "dieco",
+        "cuora",
+        "don",
+        "sio",
+        "suoio",
+        "malo",
+        "diro",
+        "cano",
+        "fedo",
+        "talo",
+        "nascoso",
+        "ombrella",
+        "fatico",
+        "lindo",
+        "linda",
+        "vu",
+        "ti",
+        "ci",
+        "ne",
+        "ce",
+        "ve",
+        "ad",
+        "so",
+        "anca",
+      ]);
+
+      /* =========================================================================
+         FILTRO RIGOROSO TOTALE (ELIMINA SAIO, FORME DIMINUTIVE E METADATI)
+         ========================================================================= */
+
+      // Lista nera di lemmi fantasma o aberrazioni di scraping presenti nel database
+
       function isGrammarJunk(str) {
         if (!str || typeof str !== "string") return true;
-        const text = str.trim().toLowerCase();
-        const junkRegex =
-          /\b(plural|feminine|masculine|singular|participle|inflection|imperative|gerund|form of|abbreviation)\b/i;
-        return junkRegex.test(text);
+
+        const text = str.trim().toLowerCase().replace(/\s+/g, " ");
+
+        // Se la definizione contiene "of" preceduto da una qualsiasi formula morfologica
+        const metaGrammarRegex =
+          /\b(diminutive|augmentative|pejorative|endearment|hypocoristic|apocopic|syncopic|frequentative|plural|singular|feminine|masculine|reflexive|reciprocal|comparative|superlative|past|present|future|imperative|gerund|infinitive|participle|inflection|alternative|variant|archaic|obsolete|dialectal|misspelling|abbreviation|acronym|initialism|clipping|form|forms)\s+of\b/i;
+        if (metaGrammarRegex.test(text)) return true;
+
+        // Se la definizione punta a un'altra parola o usa termini araldici/ecclesiastici rari
+        const invalidPatterns = [
+          /^form of\b/i,
+          /^variant of\b/i,
+          /^plural\b/i,
+          /^feminine\b/i,
+          /^masculine\b/i,
+          /^synonym of\b/i,
+          /^alternative form of\b/i,
+          /^apocopic form of\b/i,
+          /\bper bend\b/i,
+          /\bheraldry\b/i,
+          /\bmonk's habit\b/i,
+          /\bromanization of\b/i,
+          /\bname of the latin script letter\b/i,
+        ];
+
+        return invalidPatterns.some((pattern) => pattern.test(text));
       }
 
       function cleanRawCorpus(arr) {
         if (!Array.isArray(arr)) return [];
-        return arr.filter(
-          (item) => item && item.it && item.en && !isGrammarJunk(item.en)
-        );
+        const seen = new Set();
+
+        return arr.filter((item) => {
+          if (!item || typeof item !== "object") return false;
+          if (typeof item.it !== "string" || typeof item.en !== "string")
+            return false;
+
+          const it = item.it.trim().toLowerCase();
+          const en = item.en.trim();
+
+          if (!it || !en) return false;
+
+          // 1. Scarta lemmi arcaici o falsi positivi di scraping (come 'saio', 'vaio', ecc.)
+          if (BLACKLISTED_LEMMAS.has(it)) return false;
+
+          // 2. Scarta formule metadizionario (diminutive of, apocopic of, ecc.)
+          if (isGrammarJunk(en)) return false;
+
+          // 3. Scarta definizioni vuote o troncate
+          if (en.length < 2) return false;
+
+          // 4. Garantisce un solo lemma univoco per partita
+          if (seen.has(it)) return false;
+          seen.add(it);
+
+          return true;
+        });
       }
 
       function getActiveCorpus() {
@@ -1925,9 +1972,18 @@
         if (GS.taxType === "cefr" && GS.selectedFilter !== "all") {
           corpus = corpus.filter((w) => w.cefr === GS.selectedFilter);
         } else if (GS.taxType === "category" && GS.selectedFilter !== "all") {
-          corpus = corpus.filter(
-            (w) => w.pos === GS.selectedFilter || w.cat === GS.selectedFilter
-          );
+          corpus = corpus.filter((w) => {
+            const pos = (w.pos || "").toLowerCase();
+            const cat = (w.cat || "").toLowerCase();
+            const target = GS.selectedFilter.toLowerCase();
+            if (target === "verb")
+              return pos.includes("verb") || cat.includes("verb");
+            if (target === "noun")
+              return pos.includes("noun") || cat.includes("sostantiv");
+            if (target === "adjective")
+              return pos.includes("adj") || cat.includes("aggettiv");
+            return pos === target || cat === target;
+          });
         }
         return corpus.length > 0
           ? corpus
@@ -1946,7 +2002,6 @@
         const cleanTarget = cleanDefinition(card.en);
         const targetPos = card.pos || "verb";
 
-        // Filtra candidati con la medesima parte del discorso (POS)
         let candidates = fullDb.filter(
           (w) => w.pos === targetPos && cleanDefinition(w.en) !== cleanTarget
         );
@@ -1969,7 +2024,6 @@
           }
         }
 
-        // Opzioni di riserva coerenti per categoria grammaticale
         const fallbacks = {
           verb: [
             "to take",
@@ -1998,8 +2052,8 @@
       }
 
       /* =========================================================================
-         GESTIONE INTERFACCIA E NAVIGAZIONE
-         ========================================================================= */
+               GESTIONE INTERFACCIA E NAVIGAZIONE
+               ========================================================================= */
       function selectPlayMode(mode) {
         GS.playType = mode;
         $("mode-ai").classList.toggle("active", mode === "ai");
@@ -2084,8 +2138,8 @@
       }
 
       /* =========================================================================
-         STANZE MULTIPLAYER ONLINE (PEERJS)
-         ========================================================================= */
+               STANZE MULTIPLAYER ONLINE (PEERJS)
+               ========================================================================= */
       function hostCreateRoom() {
         const nameInput = $("input-username");
         GS.myName =
@@ -2266,8 +2320,8 @@
       }
 
       /* =========================================================================
-         MOTORE DI GIOCO
-         ========================================================================= */
+               MOTORE DI GIOCO (ZERO RIPETIZIONI E LUNGHEZZA REALE)
+               ========================================================================= */
       function startLocalGame() {
         const nameInput = $("input-username");
         GS.myName =
@@ -2304,45 +2358,43 @@
 
       function launchMatchEngine() {
         if (GS.timerInterval) clearInterval(GS.timerInterval);
-        let corpus = getActiveCorpus();
 
-        let fresh = corpus
-          .filter((w) => !GS.pastSessionLemmas.has(w.it))
-          .sort(() => Math.random() - 0.5);
-        let repeat = corpus
-          .filter((w) => GS.pastSessionLemmas.has(w.it))
-          .sort(() => Math.random() - 0.5);
-
-        let assembled = [...fresh];
-        if (assembled.length < GS.targetLength) {
-          assembled = assembled.concat(
-            repeat.slice(0, GS.targetLength - assembled.length)
-          );
+        const corpus = getActiveCorpus();
+        if (!corpus || corpus.length === 0) {
+          alert("Nessun vocabolo valido disponibile per questa selezione.");
+          return;
         }
 
-        let uniqueMap = new Map();
-        assembled.forEach((item) => {
-          if (!uniqueMap.has(item.it)) uniqueMap.set(item.it, item);
+        // Filtra escludendo le parole già giocate in questa sessione
+        let freshWords = corpus.filter(
+          (w) => !GS.pastSessionLemmas.has(String(w.it).trim().toLowerCase())
+        );
+
+        // Se abbiamo esaurito l'intero archivio per quel filtro, azzera la memoria
+        if (freshWords.length < GS.targetLength) {
+          GS.pastSessionLemmas.clear();
+          freshWords = [...corpus];
+        }
+
+        // Mescola e prendi esattamente il numero richiesto
+        const shuffled = freshWords.sort(() => Math.random() - 0.5);
+        const selectedWords = shuffled.slice(0, GS.targetLength);
+
+        // Segna le parole scelte come già usate
+        selectedWords.forEach((word) => {
+          GS.pastSessionLemmas.add(String(word.it).trim().toLowerCase());
         });
 
-        let finalDeck = Array.from(uniqueMap.values());
-        while (finalDeck.length < GS.targetLength && corpus.length > 0) {
-          finalDeck.push(corpus[Math.floor(Math.random() * corpus.length)]);
-        }
-
-        GS.deck = finalDeck
-          .slice(0, GS.targetLength)
-          .sort(() => Math.random() - 0.5);
-        GS.deck.forEach((c) => GS.pastSessionLemmas.add(c.it));
-        if (GS.pastSessionLemmas.size > 60) GS.pastSessionLemmas.clear();
-
+        GS.deck = selectedWords;
+        GS.targetLength = selectedWords.length;
         GS.deckIndex = 0;
         GS.turnIndex = 0;
         GS.scores = {};
         GS.isLocked = false;
         GS.reviewLog = [];
-        GS.players.forEach((p) => {
-          GS.scores[p.id] = 0;
+
+        GS.players.forEach((player) => {
+          GS.scores[player.id] = 0;
         });
 
         const startPacket = {
@@ -2352,7 +2404,10 @@
           players: GS.players,
         };
 
-        if (GS.playType === "online") broadcastState("GAME_START", startPacket);
+        if (GS.playType === "online") {
+          broadcastState("GAME_START", startPacket);
+        }
+
         syncGameStart(startPacket);
         hostNextTurn();
       }
@@ -2485,7 +2540,6 @@
           hit: false,
         });
 
-        // Evidenzia la risposta esatta in blu anche se scade il tempo
         document.querySelectorAll(".opt-btn").forEach((b) => {
           b.disabled = true;
           if (cleanDefinition(b.dataset.ans) === targetClean) {
@@ -2496,10 +2550,12 @@
         const fbBox = $("context-feedback-box");
         fbBox.className = "context-feedback bad";
         fbBox.innerHTML = `
-          <div class="feedback-verdict" style="color:var(--siena-red);">✗ Tempo Scaduto!</div>
-          <div class="context-sentence">"${GS.currentCard.ex || ""}"</div>
-          <div class="context-trans">&rarr; ${GS.currentCard.exEn || ""}</div>
-        `;
+                <div class="feedback-verdict" style="color:var(--siena-red);">✗ Tempo Scaduto!</div>
+                <div class="context-sentence">"${GS.currentCard.ex || ""}"</div>
+                <div class="context-trans">&rarr; ${
+                  GS.currentCard.exEn || ""
+                }</div>
+              `;
         fbBox.style.display = "block";
 
         if (GS.isHost) {
@@ -2567,14 +2623,14 @@
           hit: correct,
         });
 
-        // Colorazione esatta: Blu per la risposta corretta, Rosso per l'errore selezionato
+        // Risposta esatta in BLU, risposta errata in ROSSO
         document.querySelectorAll(".opt-btn").forEach((b) => {
           b.disabled = true;
           const btnClean = cleanDefinition(b.dataset.ans);
           if (btnClean === targetClean) {
-            b.classList.add("correct"); // Blu
+            b.classList.add("correct");
           } else if (b === btn && !correct) {
-            b.classList.add("wrong"); // Rosso
+            b.classList.add("wrong");
           }
         });
 
@@ -2585,16 +2641,18 @@
         const fbBox = $("context-feedback-box");
         fbBox.className = "context-feedback " + (correct ? "ok" : "bad");
         fbBox.innerHTML = `
-          <div class="feedback-verdict" style="color:${
-            correct ? "var(--trapani-bright)" : "var(--siena-red)"
-          };">
-            ${correct ? "✓ Risposta Esatta" : "✗ Risposta Errata"} (${
+                <div class="feedback-verdict" style="color:${
+                  correct ? "var(--trapani-bright)" : "var(--siena-red)"
+                };">
+                  ${correct ? "✓ Risposta Esatta" : "✗ Risposta Errata"} (${
           activePlayer.name
         })
-          </div>
-          <div class="context-sentence">"${GS.currentCard.ex || ""}"</div>
-          <div class="context-trans">&rarr; ${GS.currentCard.exEn || ""}</div>
-        `;
+                </div>
+                <div class="context-sentence">"${GS.currentCard.ex || ""}"</div>
+                <div class="context-trans">&rarr; ${
+                  GS.currentCard.exEn || ""
+                }</div>
+              `;
         fbBox.style.display = "block";
 
         updateScoreboardHUD();
@@ -2656,13 +2714,13 @@
         $("final-scoreboard").innerHTML = sorted
           .map(
             (p) => `
-          <div style="display:flex; justify-content:space-between; background:var(--bg-surface); padding:8px 12px; border-radius:4px; border:1px solid #3c2a1e;">
-            <span>${
-              p.name
-            }</span><b style="color:var(--gold-bright); font-family:var(--font-mono);">${
+                <div style="display:flex; justify-content:space-between; background:var(--bg-surface); padding:8px 12px; border-radius:4px; border:1px solid #3c2a1e;">
+                  <span>${
+                    p.name
+                  }</span><b style="color:var(--gold-bright); font-family:var(--font-mono);">${
               GS.scores[p.id] || 0
             } pt</b>
-          </div>`
+                </div>`
           )
           .join("");
 
@@ -2690,29 +2748,29 @@
             const card = document.createElement("div");
             card.className = `lista-card ${item.hit ? "hit" : "miss"}`;
             card.innerHTML = `
-            <div class="lc-top">
-  <div class="lc-word-row">
-    <span class="lc-it">${item.it}</span>
-    <button
-      type="button"
-      class="lista-tts-btn"
-      onclick="speakItalianWord(${JSON.stringify(item.it)})"
-      title="Ascolta la pronuncia"
-      aria-label="Ascolta la pronuncia di ${item.it}"
-    >
-      🔊
-    </button>
-  </div>
-
-  <span class="lc-tag">${item.pos} &bull; ${item.cefr}</span>
-</div>
-              <div class="lc-en">${item.en} (${
+                    <div class="lc-top">
+                      <div class="lc-word-row">
+                        <span class="lc-it">${item.it}</span>
+                        <button
+        type="button"
+        class="lista-tts-btn"
+        onpointerdown="speakItalianWord('${item.it.replace(/'/g, "\\'")}')"
+        title="Ascolta la pronuncia"
+      >
+        🔊
+      </button>
+                      </div>
+                      <span class="lc-tag">${item.pos} &bull; ${
+              item.cefr
+            }</span>
+                    </div>
+                    <div class="lc-en">${item.en} (${
               item.hit ? "✓ Corretto" : "✗ Sbagliato"
             })</div>
-              <div class="lc-ex">"${item.ex || ""}" &rarr; ${
+                    <div class="lc-ex">"${item.ex || ""}" &rarr; ${
               item.exEn || ""
             }</div>
-            `;
+                  `;
             container.appendChild(card);
           });
         }
